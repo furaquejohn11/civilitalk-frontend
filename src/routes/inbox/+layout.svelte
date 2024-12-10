@@ -2,8 +2,7 @@
     import { goto } from "$app/navigation";
     import { browser } from "$app/environment";
     import { onMount } from "svelte";
-    import axios from "axios";
-    import type { MessagePreview, UserRead } from "$lib/definitions";
+    import type { MessagePreview, UserRead, InboxPreview } from "$lib/definitions";
     import { apiClient } from "$lib/utils";
     import { page } from "$app/stores";
 
@@ -13,7 +12,7 @@
     let searchQuery = $state('');
     let isDropdownOpen = $state(false);
     let isMobile = $state(false);
-    let conversations = $state<MessagePreview[]>([]);
+    let user_inbox = $state<InboxPreview[]>([]);
     let {children} = $props()
 
     // Check if the current route is a specific conversation
@@ -34,6 +33,7 @@
 
             const initializeConversations = async () => {
                 try {
+                    
                     const userData = localStorage.getItem('user');
                     if (!userData) {
                         await goto('/login');
@@ -62,7 +62,7 @@
     async function loadConversations(user_id: number) {
         try {
             const response = await apiClient.get('/inbox/user', {params: {user_id: user_id}})
-            conversations = response.data as MessagePreview[];
+            user_inbox = response.data as InboxPreview[];
         } catch (error) {
             console.error("Failed to fetch conversations", error);
         }
@@ -83,10 +83,10 @@
 
     function filteredConversations() {
         return searchQuery
-            ? conversations.filter((convo) =>
-                  convo.display_name.toLowerCase().includes(searchQuery.toLowerCase())
+            ? user_inbox.filter((inbox) =>
+                  inbox.display_name.toLowerCase().includes(searchQuery.toLowerCase())
               )
-            : conversations;
+            : user_inbox;
     }
 </script>
 
@@ -201,26 +201,26 @@
                             <span class="loading loading-spinner loading-lg"></span>
                         </div>
                     {:else if filteredConversations().length > 0}
-                        {#each filteredConversations() as convo}
+                        {#each filteredConversations() as inbox}
                             <button
-                                onclick={() =>  goto(`/inbox/conversation`)}
+                                onclick={() => goto(`/inbox/conversation/${inbox.id}?displayName=${encodeURIComponent(inbox.display_name)}`)}
                                 class="flex items-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition cursor-pointer"
                             >
                                 <div class="relative">
                                     <div class="avatar online">
                                         <div class="w-12 h-12 rounded-full">
                                             <img
-                                                src={`https://api.dicebear.com/6.x/micah/svg?seed=${convo.display_name}`}
-                                                alt={convo.display_name}
+                                                src={`https://api.dicebear.com/6.x/micah/svg?seed=${inbox.display_name}`}
+                                                alt={inbox.display_name}
                                             />
                                         </div>
                                     </div>
                                 </div>
                                 <div class="ml-4 flex-grow">
                                     <div class="flex justify-between items-center">
-                                        <h2 class="font-semibold text-sm">{convo.display_name}</h2>
+                                        <h2 class="font-semibold text-sm">{inbox.display_name}</h2>
                                     </div>
-                                    <p class="text-sm text-gray-500 truncate">{convo.last_message}</p>
+                                    <p class="text-sm text-gray-500 truncate">{inbox.last_message}</p>
                                 </div>
                             </button>
                         {/each}

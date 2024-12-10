@@ -32,6 +32,14 @@ export type Inbox = {
     has_chatguard: boolean;
 }
 
+export type InboxPreview = {
+    id: number;
+    display_name: string;
+    last_message: string;
+    last_sender: number;
+    message_date: Date;
+}
+
 export type Conversation = {
     id: number;
     inbox_id: number;

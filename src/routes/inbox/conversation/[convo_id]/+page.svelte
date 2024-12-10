@@ -1,20 +1,23 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Conversation } from "$lib/definitions";
+  import type { Conversation, UserRead } from "$lib/definitions";
   import { formatDate, apiClient } from "$lib/utils";
+  import { browser } from "$app/environment";
+  import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
 
   let socket: WebSocket;
   let newMessage = $state('');
+  let displayName = $state('');
   let messages = $state<Conversation[]>([]);
 
   let userId = $state(1);
-  let userInput = $state('');
-  let convoId = $state(2);
-  let convoInput = $state('')
+  let convoId = $state<number>();
+  const convoParams = $derived($page.params.convo_id);
   const currentPage = 1;
 
-  onMount(() => {
-      // Connect to WebSocket
+  
+  function initializeSocket() {
       socket = new WebSocket("ws://localhost:8000/ws/chat");
 
       socket.onmessage = (event) => {
@@ -31,17 +34,36 @@
           console.log("WebSocket connection closed");
       };
 
+      handleIdentity();
+
       return () => {
           socket.close();
       };
-  });
-  const handleIdentity = () =>
-  {
-    convoId = parseInt(convoInput);
+  }
+  
+  function handleIdentity() {
+    if (browser) {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+          goto('/login');
+          return
+      }
+      const user: UserRead = JSON.parse(userData);
+      userId = user.id;
+
+      
+    }
+
+    try {
+      convoId = parseInt(convoParams);
+    } catch (error) {
+      alert('Invalid Conversation');
+      goto('/inbox')
+    }
+    
     fetchMessages();
   }
-  const fetchMessages = async () => {
-      userId = parseInt(userInput);
+  async function fetchMessages() {
       try {
           const response = await apiClient.get(`/conversation/${convoId}`, {
           params: { page: currentPage },
@@ -60,9 +82,11 @@
       } catch (error) {
           console.error("Error fetching messages:", error);
       }
+
+      scrollToBottom();
   };
 
-  const sendMessage = () => {
+  function sendMessage() {
       if (newMessage.trim() === "") return;
 
       const message = {
@@ -74,23 +98,11 @@
 
       // Send the message through WebSocket
       socket.send(JSON.stringify(message));
-
-      // Update the local message state (optimistic update)
-      // messages = [
-      //   ...messages,
-      //   {
-      //     id: Date.now(),
-      //     inbox_id: 1,
-      //     sender_id: userId,
-      //     text: newMessage,
-      //     created_at: new Date(),
-      //   },
-      // ];
       newMessage = '';
       scrollToBottom();
   };
 
-  const scrollToBottom = () => {
+  function scrollToBottom() {
       setTimeout(() => {
           const chatContainer = document.querySelector('.chat-container');
           if (chatContainer) {
@@ -98,6 +110,33 @@
           }
       }, 0);
   };
+
+  $effect(() => {
+    resetConversation();
+    initializeSocket();
+    handleIdentity();
+  });
+
+  function resetConversation() {
+      if (socket) {
+          socket.close();
+      }
+
+      messages = [];
+      newMessage = ''
+      if (browser) {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            goto('/login');
+            return
+      }
+      const user: UserRead = JSON.parse(userData);
+      userId = user.id;
+
+      displayName = $page.url.searchParams.get('displayName') || '';
+    }
+  }
+
 </script>
   
   <main class="min-h-screen flex flex-col bg-base-200 p-4 w-full">
@@ -107,19 +146,19 @@
         <div class="avatar">
           <div class="w-12 h-12 rounded-full ring ring-gray-600">
             <img 
-              src="https://api.dicebear.com/6.x/initials/svg?seed=Alice&backgroundColor=000000&fontSize=50&bold=true" 
+              src= {`https://api.dicebear.com/6.x/micah/svg?seed=${displayName}`}
               alt="User Avatar" 
             />
           </div>
         </div>
         <div>
-          <h1 class="text-lg font-semibold">Alice</h1>
+          <h1 class="text-lg font-semibold">{displayName}</h1>
           <p class="text-sm text-gray-400">Active now</p>
         </div>
       </div> 
       
       <!-- Alternative for logging in -->
-      <input
+      <!-- <input
         type="text"
         bind:value={convoInput}
         class=" text-black w-16"
@@ -135,7 +174,7 @@
       />
       <button onclick={handleIdentity}>
         Go
-      </button>
+      </button> -->
     </header>
   
     <!-- Messages Section -->
