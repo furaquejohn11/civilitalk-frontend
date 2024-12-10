@@ -57,3 +57,10 @@ export type MessagePreview = {
     display_name: string;
     last_message: string;
 }
+
+export type ChatguardPrompt = {
+    inbox_id: number;
+    sender_id: number;
+    text: string;
+    has_chatguard: boolean;
+}

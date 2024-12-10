@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Conversation, UserRead } from "$lib/definitions";
+  import type { ChatguardPrompt, Conversation, UserRead } from "$lib/definitions";
   import { formatDate, apiClient, isChatguardCommand } from "$lib/utils";
   import { browser } from "$app/environment";
   import { page } from "$app/stores";
@@ -13,6 +13,7 @@
 
   let userId = $state(1);
   let convoId = $state<number>();
+  let userFullName = $state('');
   const convoParams = $derived($page.params.convo_id);
   const currentPage = 1;
 
@@ -50,7 +51,7 @@
       }
       const user: UserRead = JSON.parse(userData);
       userId = user.id;
-
+      userFullName = `${user.firstname} ${user.lastname}`;
       
     }
 
@@ -86,12 +87,8 @@
       scrollToBottom();
   };
 
-  function sendMessage() {
+  async function sendMessage() {
       if (newMessage.trim() === "") return;
-
-      if (isChatguardCommand(newMessage)) {
-          return
-      }
 
       const message = {
           inbox_id: convoId,
@@ -102,7 +99,42 @@
 
       // Send the message through WebSocket
       socket.send(JSON.stringify(message));
-      newMessage = '';
+
+      if (isChatguardCommand(newMessage)) {
+        switch (newMessage) {
+          case "/chatguard-on":
+            const response_enable = await apiClient.get<ChatguardPrompt>('/chatguard/enable', {
+              params: { inbox_id: convoId, name: userFullName }
+            });
+
+            if (response_enable) {
+              const prompt: ChatguardPrompt = {...response_enable.data};
+              socket.send(JSON.stringify(prompt));
+            }
+            break;
+          
+          case "/chatguard-off":
+            const response_disable = await apiClient.get<ChatguardPrompt>('/chatguard/disable', {
+                params: { inbox_id: convoId, name: userFullName }
+              });
+            if (response_disable) {
+              const prompt: ChatguardPrompt = {...response_disable.data};
+              socket.send(JSON.stringify(prompt));
+            }
+            break;
+
+          case "/chatguard-help":
+            // chatGuardHelp();
+            break;
+
+          default:
+            alert("chat guard command must not have any arguments.");
+            return;
+
+        }
+      }
+
+      newMessage = '';   
       scrollToBottom();
   };
 
@@ -190,6 +222,22 @@
             <div class="chat-bubble chat-bubble-primary">{msg.text}</div>
             <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
           </div>
+        {:else if (msg.sender_id === 0)}
+        <!-- Recipient's Message -->
+        <div class="chat chat-start flex items-start gap-2">
+          <div class="avatar">
+            <div class="w-10 h-10 rounded-full ring ring-gray-600">
+              <img 
+                src="https://api.dicebear.com/6.x/bottts/svg?seed=ChatBot"
+                alt="Chatguard Avatar" 
+              />
+            </div>
+          </div>
+          <div>
+            <div class="chat-bubble chat-bubble-accent">{msg.text}</div>
+            <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
+          </div>
+        </div>
         {:else}
           <!-- Recipient's Message -->
           <div class="chat chat-start flex items-start gap-2">
