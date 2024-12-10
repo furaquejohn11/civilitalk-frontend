@@ -9,6 +9,43 @@ export const apiClient = axios.create({
     },
 });
 
+const commands = ["/chatguard-on", "/chatguard-off", "chatguard-help"];
+export const isChatguardCommand = (message: string): boolean => { 
+    const isCommand = commands.some(command => message.trim().startsWith(command));
+    if (isCommand) {
+      switch (message) {
+        case "/chatguard-on":
+          chatGuardOn();
+          break;
+        
+        case "/chatguard-off":
+          chatGuardOff();
+          break;
+
+        case "/chatguard-help":
+          chatGuardHelp();
+          break;
+
+        default:
+          alert("chat guard command must not have any arguments.");
+
+      }
+    }
+
+    return isCommand
+}
+
+const chatGuardOn = () => {
+  alert('ON');
+}
+const chatGuardOff = () => {
+  alert('OFF');
+}
+const chatGuardHelp = () => {
+  alert('HELP');
+}
+
+
 // Date time formatter
 export const formatDate = (date: Date): string => {
     const now = new Date();

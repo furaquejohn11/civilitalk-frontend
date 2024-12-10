@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Conversation, UserRead } from "$lib/definitions";
-  import { formatDate, apiClient } from "$lib/utils";
+  import { formatDate, apiClient, isChatguardCommand } from "$lib/utils";
   import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
@@ -88,6 +88,10 @@
 
   function sendMessage() {
       if (newMessage.trim() === "") return;
+
+      if (isChatguardCommand(newMessage)) {
+          return
+      }
 
       const message = {
           inbox_id: convoId,
@@ -188,9 +192,19 @@
           </div>
         {:else}
           <!-- Recipient's Message -->
-          <div class="chat chat-start">
-            <div class="chat-bubble chat-bubble-accent">{msg.text}</div>
-            <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
+          <div class="chat chat-start flex items-start gap-2">
+            <div class="avatar">
+              <div class="w-10 h-10 rounded-full ring ring-gray-600">
+                <img 
+                  src={`https://api.dicebear.com/6.x/micah/svg?seed=${displayName}`}
+                  alt="User Avatar" 
+                />
+              </div>
+            </div>
+            <div>
+              <div class="chat-bubble chat-bubble-accent">{msg.text}</div>
+              <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
+            </div>
           </div>
         {/if}
       {/each}
