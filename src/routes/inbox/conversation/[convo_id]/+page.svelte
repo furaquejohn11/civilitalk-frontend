@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { ChatguardPrompt, Conversation, UserRead } from "$lib/definitions";
-  import { formatDate, apiClient, isChatguardCommand } from "$lib/utils";
+  import { formatDate, apiClient, isChatguardCommand, hasChatguard } from "$lib/utils";
   import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
@@ -12,9 +12,9 @@
   let messages = $state<Conversation[]>([]);
 
   let userId = $state(1);
-  let convoId = $state<number>();
+  let inboxId = $state<number>();
   let userFullName = $state('');
-  const convoParams = $derived($page.params.convo_id);
+  const inboxParams = $derived($page.params.convo_id);
   const currentPage = 1;
 
   
@@ -56,7 +56,7 @@
     }
 
     try {
-      convoId = parseInt(convoParams);
+      inboxId = parseInt(inboxParams);
     } catch (error) {
       alert('Invalid Conversation');
       goto('/inbox')
@@ -66,7 +66,7 @@
   }
   async function fetchMessages() {
       try {
-          const response = await apiClient.get(`/conversation/${convoId}`, {
+          const response = await apiClient.get(`/conversation/${inboxId}`, {
           params: { page: currentPage },
           });
 
@@ -88,13 +88,16 @@
   };
 
   async function sendMessage() {
-      if (newMessage.trim() === "") return;
+      if (newMessage.trim() === "" || !inboxId) return;
 
+      const chatguard = await hasChatguard(inboxId);
+
+      console.log(chatguard);
       const message = {
-          inbox_id: convoId,
+          inbox_id: inboxId,
           sender_id: userId,
           text: newMessage,
-          has_chatguard: true, // Set this based on your application logic
+          has_chatguard: chatguard // Set this based on your application logic
       };
 
       // Send the message through WebSocket
@@ -104,7 +107,7 @@
         switch (newMessage) {
           case "/chatguard-on":
             const response_enable = await apiClient.get<ChatguardPrompt>('/chatguard/enable', {
-              params: { inbox_id: convoId, name: userFullName }
+              params: { inbox_id: inboxId, name: userFullName }
             });
 
             if (response_enable) {
@@ -115,7 +118,7 @@
           
           case "/chatguard-off":
             const response_disable = await apiClient.get<ChatguardPrompt>('/chatguard/disable', {
-                params: { inbox_id: convoId, name: userFullName }
+                params: { inbox_id: inboxId, name: userFullName }
               });
             if (response_disable) {
               const prompt: ChatguardPrompt = {...response_disable.data};

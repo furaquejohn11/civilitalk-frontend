@@ -9,6 +9,16 @@ export const apiClient = axios.create({
     },
 });
 
+export const hasChatguard = async (inbox_id: number): Promise<boolean> => {
+  const response = await apiClient.get(`/chatguard/inbox`, {
+    params: { inbox_id: inbox_id},
+    });
+
+    return response.data;
+}
+
+
+
 const commands = ["/chatguard-on", "/chatguard-off", "chatguard-help"];
 export const isChatguardCommand = (message: string): boolean => { 
     const isCommand = commands.some(command => message.trim().startsWith(command));
