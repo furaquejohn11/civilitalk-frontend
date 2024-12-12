@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { ChatguardPrompt, Conversation, UserRead } from "$lib/definitions";
-  import { formatDate, apiClient, isChatguardCommand, hasChatguard } from "$lib/utils";
+  import { type ChatguardPrompt, ChatguardCommand, type Conversation, type UserRead, type Message } from "$lib/definitions";
+  import { formatDate, apiClient, isChatguardCommand, hasChatguard, executeChatguard } from "$lib/utils";
   import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
+	import type { AxiosResponse } from "axios";
 
   let socket: WebSocket;
   let newMessage = $state('');
@@ -19,7 +20,7 @@
 
   
   function initializeSocket() {
-      socket = new WebSocket("ws://localhost:8000/ws/chat");
+      socket = new WebSocket(`ws://localhost:8000/ws/chat?inbox_id=${inboxId}`);
 
       socket.onmessage = (event) => {
           const message = JSON.parse(event.data);
@@ -34,8 +35,6 @@
       socket.onclose = () => {
           console.log("WebSocket connection closed");
       };
-
-      handleIdentity();
 
       return () => {
           socket.close();
@@ -87,56 +86,58 @@
       scrollToBottom();
   };
 
+  function responseSender(message: ChatguardPrompt) {
+    if (message) {
+      const prompt: ChatguardPrompt = {...message};
+      socket.send(JSON.stringify(prompt));
+    }
+    else {
+      alert('Invalid message!');
+    }
+  }
+
+  async function initiateChatguard(message: string) {
+    if (!inboxId) {
+      return;
+    }
+
+    switch (message) {
+      // List of all commands. Check ChatguardCommand enum in the definition if you want to add 
+      // additional commands.
+      case "/chatguard-on":
+        const response_on = await executeChatguard(inboxId, userFullName, ChatguardCommand.enable);
+        responseSender(response_on);
+        break;
+      case "/chatguard-off":
+        const response_off = await executeChatguard(inboxId, userFullName, ChatguardCommand.disable);
+        responseSender(response_off);
+        break;
+      case "/chatguard-help":
+        alert('help');
+        break;
+      default:
+        alert("chat guard command must not have any arguments.");
+        break;
+    }
+  }
+
   async function sendMessage() {
       if (newMessage.trim() === "" || !inboxId) return;
 
       const chatguard = await hasChatguard(inboxId);
 
-      console.log(chatguard);
-      const message = {
+      const message: Message = {
           inbox_id: inboxId,
           sender_id: userId,
           text: newMessage,
-          has_chatguard: chatguard // Set this based on your application logic
+          has_chatguard: chatguard
       };
 
       // Send the message through WebSocket
       socket.send(JSON.stringify(message));
 
-      if (isChatguardCommand(newMessage)) {
-        switch (newMessage) {
-          case "/chatguard-on":
-            const response_enable = await apiClient.get<ChatguardPrompt>('/chatguard/enable', {
-              params: { inbox_id: inboxId, name: userFullName }
-            });
-
-            if (response_enable) {
-              const prompt: ChatguardPrompt = {...response_enable.data};
-              socket.send(JSON.stringify(prompt));
-            }
-            break;
-          
-          case "/chatguard-off":
-            const response_disable = await apiClient.get<ChatguardPrompt>('/chatguard/disable', {
-                params: { inbox_id: inboxId, name: userFullName }
-              });
-            if (response_disable) {
-              const prompt: ChatguardPrompt = {...response_disable.data};
-              socket.send(JSON.stringify(prompt));
-            }
-            break;
-
-          case "/chatguard-help":
-            // chatGuardHelp();
-            break;
-
-          default:
-            alert("chat guard command must not have any arguments.");
-            return;
-
-        }
-      }
-
+      if (isChatguardCommand(newMessage)) await initiateChatguard(newMessage);
+      
       newMessage = '';   
       scrollToBottom();
   };
@@ -152,8 +153,8 @@
 
   $effect(() => {
     resetConversation();
-    initializeSocket();
     handleIdentity();
+    initializeSocket();
   });
 
   function resetConversation() {

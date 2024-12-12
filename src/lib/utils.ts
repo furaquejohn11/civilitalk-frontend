@@ -1,4 +1,6 @@
 import axios from "axios";
+import type { ChatguardPrompt} from "./definitions";
+import { ChatguardCommand } from "./definitions";
 // import { WebSocket } from "vite";
 
 // API URL Endpoint
@@ -17,44 +19,26 @@ export const hasChatguard = async (inbox_id: number): Promise<boolean> => {
     return response.data;
 }
 
-
+export const executeChatguard = async (
+  inboxId: number,
+  userFullName: string,
+  command: ChatguardCommand
+): Promise<ChatguardPrompt> => {
+  const response = await apiClient.get<ChatguardPrompt>(`/chatguard/${command}`, {
+    params: { inbox_id: inboxId, name: userFullName }
+  });
+  return response.data;
+}
 
 const commands = ["/chatguard-on", "/chatguard-off", "chatguard-help"];
 export const isChatguardCommand = (message: string): boolean => { 
     const isCommand = commands.some(command => message.trim().startsWith(command));
-    // if (isCommand) {
-      // switch (message) {
-      //   case "/chatguard-on":
-      //     chatGuardOn();
-      //     break;
-        
-      //   case "/chatguard-off":
-      //     chatGuardOff();
-      //     break;
-
-      //   case "/chatguard-help":
-      //     chatGuardHelp();
-      //     break;
-
-      //   default:
-      //     alert("chat guard command must not have any arguments.");
-
-      // }
-    // }
-
     return isCommand
 }
-
-const chatGuardOn = () => {
-  alert('ON');
-}
-const chatGuardOff = () => {
-  alert('OFF');
-}
-const chatGuardHelp = () => {
-  alert('HELP');
-}
-
+// export const isChatguardCommand = (message: string): boolean => {
+//   const prefix = "/chatguard-";
+//   return Object.values(ChatguardCommand).some(command => message.trim().startsWith(prefix + command));
+// }
 
 // Date time formatter
 export const formatDate = (date: Date): string => {

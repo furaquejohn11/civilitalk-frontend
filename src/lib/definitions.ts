@@ -52,6 +52,12 @@ export type InfoMessage = {
     message: string;
 }
 
+export type Message = {
+    inbox_id: number;
+    sender_id: number;
+    text: string;
+    has_chatguard: boolean;
+}
 export type MessagePreview = {
     convo_id: string;
     display_name: string;
@@ -63,4 +69,10 @@ export type ChatguardPrompt = {
     sender_id: number;
     text: string;
     has_chatguard: boolean;
+}
+
+export enum ChatguardCommand {
+    enable = "enable",
+    disable = "disable",
+    help = "help"
 }
