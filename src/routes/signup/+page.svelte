@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
 	import type { UserCreate } from "$lib/definitions";
     import { apiClient } from "$lib/utils";
 
@@ -16,6 +17,7 @@
             if (response.status === 200) {
                 alert('Signup Success');
                 console.log(response.data)
+                goto("/");
             }
             else {
                 alert('Mali code mo');

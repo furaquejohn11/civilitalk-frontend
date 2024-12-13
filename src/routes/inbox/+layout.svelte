@@ -3,7 +3,7 @@
     import { browser } from "$app/environment";
     import { onMount } from "svelte";
     import type { MessagePreview, UserRead, InboxPreview } from "$lib/definitions";
-    import { apiClient } from "$lib/utils";
+    import { apiClient, formatDate } from "$lib/utils";
     import { page } from "$app/stores";
 
 
@@ -204,7 +204,7 @@
                         {#each filteredConversations() as inbox}
                             <button
                                 onclick={() => goto(`/inbox/conversation/${inbox.id}?displayName=${encodeURIComponent(inbox.display_name)}`)}
-                                class="flex items-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition cursor-pointer"
+                                class="flex items-center p-4 w-full rounded-lg bg-gray-50 hover:bg-gray-100 transition cursor-pointer"
                             >
                                 <div class="relative">
                                     <div class="avatar online">
@@ -216,11 +216,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="ml-4 flex-grow">
+                                <div class="ml-4 flex-grow max-w-xs">
                                     <div class="flex justify-between items-center">
                                         <h2 class="font-semibold text-sm">{inbox.display_name}</h2>
+                                        <h2 class="font-semibold text-sm">{formatDate(new Date(inbox.message_date))}</h2>
                                     </div>
-                                    <p class="text-sm text-gray-500 truncate">{inbox.last_message}</p>
+                                    <p class="text-sm text-gray-500 text-left truncate">{inbox.last_message}</p>
                                 </div>
                             </button>
                         {/each}

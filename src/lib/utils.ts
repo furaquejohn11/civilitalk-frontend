@@ -11,6 +11,23 @@ export const apiClient = axios.create({
     },
 });
 
+export const hasExistingInbox = async (sender_id: number, receiver_id: number): Promise<{ exists: boolean, inbox_id: number | null }> => {
+  try {
+    const response = await apiClient.get(`/inbox/validate`, {
+      params: { 
+        sender_id: sender_id, 
+        receiver_id: receiver_id 
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error checking inbox:', error);
+    return { exists: false, inbox_id: null };
+  }
+}
+
+
 export const hasChatguard = async (inbox_id: number): Promise<boolean> => {
   const response = await apiClient.get(`/chatguard/inbox`, {
     params: { inbox_id: inbox_id},
