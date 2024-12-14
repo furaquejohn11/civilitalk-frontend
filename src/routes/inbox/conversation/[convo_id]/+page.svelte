@@ -44,11 +44,11 @@
   }
 
   function handleInboxReload() {
-        const { reloadInbox } = get(reloadInboxContent);
-        if (reloadInbox) {
-            reloadInbox();
-        }
+    const { reloadInbox } = get(reloadInboxContent);
+    if (reloadInbox) {
+        reloadInbox();
     }
+  }
   
   function handleIdentity() {
     if (browser) {

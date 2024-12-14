@@ -3,6 +3,8 @@
     import { browser } from "$app/environment";
 	import { goto } from "$app/navigation";
 	import type {UserRead, InboxCreate, Inbox, Conversation, Message } from "$lib/definitions";
+	import { get } from "svelte/store";
+	import { reloadInboxContent } from "$lib/stores";
 
     let userId = $state<number | null>();
     let userFullName = $state('');
@@ -32,7 +34,6 @@
 
     async function initiateInboxCreation(receiver_id: number, fullname: string) {
         if (!userId) return;
-
         
         const {exists, inbox_id} = await hasExistingInbox(userId, receiver_id);
 
@@ -72,6 +73,7 @@
 
                 const isSuccessMessage = await sendMessage(inboxId);
                 if (isSuccessMessage) {
+                    handleInboxReload();
                     goto(`/inbox/conversation/${inboxId}?displayName=${encodeURIComponent(receiverFullName)}`)
                 }
 
@@ -114,6 +116,13 @@
             return false;
         }
 
+    }
+
+    function handleInboxReload() {
+        const { reloadInbox } = get(reloadInboxContent);
+        if (reloadInbox) {
+            reloadInbox();
+        }
     }
     
     $effect(() => {
