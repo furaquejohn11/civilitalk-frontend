@@ -32,6 +32,12 @@ export type Inbox = {
     has_chatguard: boolean;
 }
 
+export type InboxCreate = {
+    created_by: number;
+    received_by: number;
+    has_chatguard: false;
+}
+
 export type InboxPreview = {
     id: number;
     display_name: string;
