@@ -17,3 +17,8 @@ export function initializeWebSocket(userId: number) {
 
     return socket;
 }
+
+type InboxFunction = (() => void) | null;
+export const reloadInboxContent = writable<{reloadInbox: InboxFunction}>({
+    reloadInbox: null
+});

@@ -5,6 +5,7 @@
     import type { MessagePreview, UserRead, InboxPreview } from "$lib/definitions";
     import { apiClient, formatDate } from "$lib/utils";
     import { page } from "$app/stores";
+    import { reloadInboxContent } from "$lib/stores";
 
 
     let firstName = $state('');
@@ -31,26 +32,9 @@
             checkMobile();
             window.addEventListener('resize', checkMobile);
 
-            const initializeConversations = async () => {
-                try {
-                    
-                    const userData = localStorage.getItem('user');
-                    if (!userData) {
-                        await goto('/login');
-                        return
-                    }
-
-                    const user: UserRead = JSON.parse(userData);
-                    firstName = user.firstname;
-                    await loadConversations(user.id);
-                    loading = false;
-                } catch (error) {
-                    console.error("Error loading conversations:", error);
-                    await goto('/login');
-                }
-            };
-
             initializeConversations();
+
+            reloadInboxContent.set({reloadInbox});
 
             // Return cleanup function
             return () => {
@@ -58,6 +42,29 @@
             };
         }
     });
+
+    const reloadInbox = () => {
+        initializeConversations();
+    }
+
+    async function initializeConversations() {
+        try {  
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                await goto('/login');
+                return
+            }
+
+            const user: UserRead = JSON.parse(userData);
+            firstName = user.firstname;
+            await loadConversations(user.id);
+            loading = false;
+        } catch (error) {
+            console.error("Error loading conversations:", error);
+            await goto('/login');
+        }
+    };
+
 
     async function loadConversations(user_id: number) {
         try {
@@ -87,6 +94,11 @@
                   inbox.display_name.toLowerCase().includes(searchQuery.toLowerCase())
               )
             : user_inbox;
+    }
+    function getSortedConversations() {
+        return filteredConversations().toSorted((a, b) => 
+            new Date(b.message_date).getTime() - new Date(a.message_date).getTime()
+        );
     }
 </script>
 
@@ -201,7 +213,7 @@
                             <span class="loading loading-spinner loading-lg"></span>
                         </div>
                     {:else if filteredConversations().length > 0}
-                        {#each filteredConversations() as inbox}
+                        {#each getSortedConversations() as inbox}
                             <button
                                 onclick={() => goto(`/inbox/conversation/${inbox.id}?displayName=${encodeURIComponent(inbox.display_name)}`)}
                                 class="flex items-center p-4 w-full rounded-lg bg-gray-50 hover:bg-gray-100 transition cursor-pointer"

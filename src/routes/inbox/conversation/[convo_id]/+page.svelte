@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { type ChatguardPrompt, ChatguardCommand, type Conversation, type UserRead, type Message } from "$lib/definitions";
   import { formatDate, apiClient, isChatguardCommand, hasChatguard, executeChatguard } from "$lib/utils";
   import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-	import type { AxiosResponse } from "axios";
+  import { reloadInboxContent } from "$lib/stores";
+	import { get } from "svelte/store";
 
   let socket: WebSocket;
   let newMessage = $state('');
@@ -18,6 +18,7 @@
   const inboxParams = $derived($page.params.convo_id);
   const currentPage = 1;
 
+
   
   function initializeSocket() {
       socket = new WebSocket(`ws://localhost:8000/ws/chat?inbox_id=${inboxId}`);
@@ -25,7 +26,8 @@
       socket.onmessage = (event) => {
           const message = JSON.parse(event.data);
           messages = [...messages, { ...message, created_at: new Date(message.created_at) }];
-          scrollToBottom();
+          handleInboxReload();
+          scrollToBottom(); 
       };
 
       socket.onopen = () => {
@@ -40,6 +42,13 @@
           socket.close();
       };
   }
+
+  function handleInboxReload() {
+        const { reloadInbox } = get(reloadInboxContent);
+        if (reloadInbox) {
+            reloadInbox();
+        }
+    }
   
   function handleIdentity() {
     if (browser) {
