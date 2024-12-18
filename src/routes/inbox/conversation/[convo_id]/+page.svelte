@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { type ChatguardPrompt, ChatguardCommand, type Conversation, type UserRead, type Message } from "$lib/definitions";
-  import { formatDate, apiClient, isChatguardCommand, hasChatguard, executeChatguard } from "$lib/utils";
+  import { type ChatguardPrompt, ChatguardCommand, type Conversation, type UserRead, type Message, BotModel } from "$lib/definitions";
+  import { formatDate, apiClient, isChatguardCommand, hasChatguard, executeChatguard, getChatguardModel, executeChatguardModel, executeChatguardUtils } from "$lib/utils";
   import { browser } from "$app/environment";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
@@ -11,6 +11,7 @@
   let newMessage = $state('');
   let displayName = $state('');
   let messages = $state<Conversation[]>([]);
+  let isLoading = $state(false);
 
   let userId = $state(1);
   let inboxId = $state<number>();
@@ -73,6 +74,8 @@
     fetchMessages();
   }
   async function fetchMessages() {
+      
+      isLoading = true;
       try {
           const response = await apiClient.get(`/conversation/${inboxId}`, {
           params: { page: currentPage },
@@ -90,9 +93,10 @@
           }
       } catch (error) {
           console.error("Error fetching messages:", error);
+      } finally {
+          isLoading = false;
+          scrollToBottom();
       }
-
-      scrollToBottom();
   };
 
   function responseSender(message: ChatguardPrompt) {
@@ -117,15 +121,34 @@
         const response_on = await executeChatguard(inboxId, userFullName, ChatguardCommand.enable);
         responseSender(response_on);
         break;
+
       case "/chatguard-off":
         const response_off = await executeChatguard(inboxId, userFullName, ChatguardCommand.disable);
         responseSender(response_off);
         break;
+
       case "/chatguard-help":
-        alert('help');
+        const response_help = await executeChatguardUtils(inboxId, ChatguardCommand.help);
+        responseSender(response_help);
         break;
+
+      case "/chatguard-status":
+        const response_status = await executeChatguardUtils(inboxId, ChatguardCommand.status);
+        responseSender(response_status);
+        break;
+
+      case "/chatguard-rnn":
+        const response_rnn = await executeChatguardModel(inboxId, userFullName, BotModel.RNN);
+        responseSender(response_rnn);
+        break;
+
+      case "/chatguard-rf":
+        const response_rf = await executeChatguardModel(inboxId, userFullName, BotModel.RANDOM_FOREST);
+        responseSender(response_rf);
+        break;
+
       default:
-        alert("chat guard command must not have any arguments.");
+        alert("Chatguard commands must not have any preceding arguments.");
         break;
     }
   }
@@ -134,12 +157,13 @@
       if (newMessage.trim() === "" || !inboxId) return;
 
       const chatguard = await hasChatguard(inboxId);
-
+      const botModel = await getChatguardModel(inboxId);
       const message: Message = {
           inbox_id: inboxId,
           sender_id: userId,
           text: newMessage,
-          has_chatguard: chatguard
+          has_chatguard: chatguard,
+          bot_model: botModel
       };
 
       // Send the message through WebSocket
@@ -205,70 +229,57 @@
           <p class="text-sm text-gray-400">Active now</p>
         </div>
       </div> 
-      
-      <!-- Alternative for logging in -->
-      <!-- <input
-        type="text"
-        bind:value={convoInput}
-        class=" text-black w-16"
-        placeholder="ConvoId"
-        onkeydown={(e) => e.key === 'Enter' && fetchMessages()}
-      />
-      <input
-        type="text"
-        bind:value={userInput}
-        class=" text-black w-16"
-        placeholder="UserId"
-        onkeydown={(e) => e.key === 'Enter' && fetchMessages()}
-      />
-      <button onclick={handleIdentity}>
-        Go
-      </button> -->
     </header>
   
     <!-- Messages Section -->
     <section class="flex-1 overflow-y-auto p-4 chat-container bg-base-100 rounded-md shadow-md">
-      {#each messages as msg (msg.id)}
-        {#if msg.sender_id === userId}
-          <!-- User's Message -->
-          <div class="chat chat-end">
-            <div class="chat-bubble chat-bubble-primary">{msg.text}</div>
-            <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
-          </div>
-        {:else if (msg.sender_id === 0)}
-        <!-- Recipient's Message -->
-        <div class="chat chat-start flex items-start gap-2">
-          <div class="avatar">
-            <div class="w-10 h-10 rounded-full ring ring-gray-600">
-              <img 
-                src="https://api.dicebear.com/6.x/bottts/svg?seed=ChatBot"
-                alt="Chatguard Avatar" 
-              />
-            </div>
-          </div>
-          <div>
-            <div class="chat-bubble chat-bubble-accent">{msg.text}</div>
-            <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
-          </div>
+      {#if isLoading}
+        <div class="flex justify-center items-center h-full">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
         </div>
-        {:else}
+      {:else}
+        {#each messages as msg (msg.id)}
+          {#if msg.sender_id === userId}
+            <!-- User's Message -->
+            <div class="chat chat-end">
+              <div class="chat-bubble chat-bubble-primary">{msg.text}</div>
+              <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
+            </div>
+          {:else if (msg.sender_id === 0)}
           <!-- Recipient's Message -->
           <div class="chat chat-start flex items-start gap-2">
             <div class="avatar">
               <div class="w-10 h-10 rounded-full ring ring-gray-600">
                 <img 
-                  src={`https://api.dicebear.com/6.x/micah/svg?seed=${displayName}`}
-                  alt="User Avatar" 
+                  src="https://api.dicebear.com/6.x/bottts/svg?seed=ChatBot"
+                  alt="Chatguard Avatar" 
                 />
               </div>
             </div>
             <div>
-              <div class="chat-bubble chat-bubble-accent">{msg.text}</div>
+              <div class="chat-bubble chat-bubble-accent whitespace-pre-line">{msg.text}</div>
               <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
             </div>
           </div>
-        {/if}
-      {/each}
+          {:else}
+            <!-- Recipient's Message -->
+            <div class="chat chat-start flex items-start gap-2">
+              <div class="avatar">
+                <div class="w-10 h-10 rounded-full ring ring-gray-600">
+                  <img 
+                    src={`https://api.dicebear.com/6.x/micah/svg?seed=${displayName}`}
+                    alt="User Avatar" 
+                  />
+                </div>
+              </div>
+              <div>
+                <div class="chat-bubble chat-bubble-accent">{msg.text}</div>
+                <div class="chat-footer opacity-50 text-xs">{formatDate(msg.created_at)}</div>
+              </div>
+            </div>
+          {/if}
+        {/each}
+      {/if}
     </section>
   
     <!-- Message Input Section -->

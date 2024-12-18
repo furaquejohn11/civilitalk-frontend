@@ -30,6 +30,7 @@ export type Inbox = {
     received_by: number;
     created_at: Date;
     has_chatguard: boolean;
+    bot_model: BotModel;
 }
 
 export type InboxCreate = {
@@ -63,6 +64,7 @@ export type Message = {
     sender_id: number;
     text: string;
     has_chatguard: boolean;
+    bot_model: BotModel;
 }
 export type MessagePreview = {
     convo_id: string;
@@ -75,10 +77,17 @@ export type ChatguardPrompt = {
     sender_id: number;
     text: string;
     has_chatguard: boolean;
+    bot_model: BotModel;
 }
 
 export enum ChatguardCommand {
     enable = "enable",
     disable = "disable",
-    help = "help"
+    help = "help",
+    status = "status"
+}
+export enum BotModel {
+    RNN = "rnn",
+    RANDOM_FOREST = "random_forest",
+    SVG = "svg"
 }

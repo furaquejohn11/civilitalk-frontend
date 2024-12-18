@@ -3,27 +3,30 @@
 	import type { UserLogin, UserRead } from "$lib/definitions";
 	import { goto } from "$app/navigation";
 
-    let user = $state<UserLogin>({username: '', password: ''});
-    let errorMessage = $state<string | null>(null);
+  let user = $state<UserLogin>({username: '', password: ''});
+  let errorMessage = $state<string | null>(null);
+  let showPassword = $state(false);
 
-    async function handleLogin(event: SubmitEvent){
-        event.preventDefault();
-        try {
-            const response = await apiClient.post<UserRead>('/user/login', {...user});
-            if (response.status === 200) {
-                alert('Login Success');
-                console.log(response.data)
-                localStorage.setItem('user', JSON.stringify(response.data));
-                goto('/inbox');
-            }
-            else {
-                alert('Mali code mo');
-            }
-        } catch (error) {
-            alert(error);
-        }
-        
-    }
+  async function handleLogin(event: SubmitEvent){
+      event.preventDefault();
+      try {
+          const response = await apiClient.post<UserRead>('/user/login', {...user});
+          if (response.status === 200) {
+              alert('Login Success');
+              console.log(response.data)
+
+              // Dont do this in real production. This is only for simple storing information.
+              localStorage.setItem('user', JSON.stringify(response.data));
+              goto('/inbox');
+          }
+          else {
+              alert('Mali code mo');
+          }
+      } catch (error) {
+          alert(error);
+      }
+      
+  }
 </script>
 <main class="flex items-center justify-center min-h-screen">
     <form class="flex flex-col gap-4" onsubmit={handleLogin}>
@@ -57,12 +60,18 @@
             clip-rule="evenodd" />
         </svg>
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           class="grow"
           placeholder="Password"
           bind:value={user.password}
           required
         />
+        <button 
+          class="w-7 -ml-14"
+          type="button"
+          onclick={() => showPassword = !showPassword}>
+          {showPassword ? "Hide" : "Show"}
+        </button>
       </label>
   
       <input type="submit" value="Login" class="btn btn-neutral" />

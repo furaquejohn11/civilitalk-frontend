@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { ChatguardPrompt} from "./definitions";
+import type { BotModel, ChatguardPrompt} from "./definitions";
 import { ChatguardCommand } from "./definitions";
 // import { WebSocket } from "vite";
 
@@ -27,6 +27,24 @@ export const hasExistingInbox = async (sender_id: number, receiver_id: number): 
   }
 }
 
+export const getChatguardModel = async (inbox_id: number): Promise<BotModel> => {
+  const response = await apiClient.get(`/chatguard/model`, {
+    params: { inbox_id: inbox_id},
+    });
+
+    return response.data;
+}
+export const executeChatguardModel = async (
+  inboxId: number,
+  userFullName: string,
+  botModel: BotModel
+): Promise<ChatguardPrompt> => {
+  const response = await apiClient.get<ChatguardPrompt>(`/chatguard/${botModel}`, {
+    params: { inbox_id: inboxId, name: userFullName }
+  });
+  return response.data;
+}
+
 
 export const hasChatguard = async (inbox_id: number): Promise<boolean> => {
   const response = await apiClient.get(`/chatguard/inbox`, {
@@ -47,7 +65,20 @@ export const executeChatguard = async (
   return response.data;
 }
 
-const commands = ["/chatguard-on", "/chatguard-off", "chatguard-help"];
+export const executeChatguardUtils = async (
+  inboxId: number,
+  command: ChatguardCommand
+): Promise<ChatguardPrompt> => {
+  const response = await apiClient.get<ChatguardPrompt>(`/chatguard/${command}`, {
+    params: { inbox_id: inboxId }
+  });
+  return response.data;
+}
+
+const commands = [
+  "/chatguard-on", "/chatguard-off", "/chatguard-help", 
+  "/chatguard-rnn", "/chatguard-rf", "/chatguard-status"];
+
 export const isChatguardCommand = (message: string): boolean => { 
     const isCommand = commands.some(command => message.trim().startsWith(command));
     return isCommand
