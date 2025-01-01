@@ -1,82 +1,97 @@
 <script lang="ts">
   import { apiClient } from "$lib/utils";
-	import type { UserLogin, UserRead } from "$lib/definitions";
-	import { goto } from "$app/navigation";
+  import type { UserLogin, UserRead } from "$lib/definitions";
+  import { goto } from "$app/navigation";
 
-  let user = $state<UserLogin>({username: '', password: ''});
+  let user = $state<UserLogin>({ username: '', password: '' });
   let errorMessage = $state<string | null>(null);
   let showPassword = $state(false);
 
-  async function handleLogin(event: SubmitEvent){
-      event.preventDefault();
-      try {
-          const response = await apiClient.post<UserRead>('/user/login', {...user});
-          if (response.status === 200) {
-              alert('Login Success');
-              console.log(response.data)
+  async function handleLogin(event: SubmitEvent) {
+    event.preventDefault();
+    try {
+      const response = await apiClient.post<UserRead>('/user/login', { ...user });
+      if (response.status === 200) {
+        alert('Login Success');
+        console.log(response.data);
 
-              // Dont do this in real production. This is only for simple storing information.
-              localStorage.setItem('user', JSON.stringify(response.data));
-              goto('/inbox');
-          }
-          else {
-              alert('Mali code mo');
-          }
-      } catch (error) {
-          alert(error);
+        // Simple storage for demonstration purposes only
+        localStorage.setItem('user', JSON.stringify(response.data));
+        goto('/inbox');
+      } else {
+        alert('Invalid credentials');
       }
-      
+    } catch (error) {
+      alert(error);
+    }
   }
 </script>
-<main class="flex items-center justify-center min-h-screen">
-    <form class="flex flex-col gap-4" onsubmit={handleLogin}>
-      <label class="input input-bordered flex items-center gap-2">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          class="h-4 w-4 opacity-70">
-          <path
-            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
-        </svg>
-        <input
-          type="text"
-          class="grow"
-          placeholder="Username"
-          bind:value={user.username}
-          required
-        />
-      </label>
-  
-      <label class="input input-bordered flex items-center gap-2">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          class="h-4 w-4 opacity-70">
-          <path
-            fill-rule="evenodd"
-            d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
-            clip-rule="evenodd" />
-        </svg>
-        <input
-          type={showPassword ? "text" : "password"}
-          class="grow"
-          placeholder="Password"
-          bind:value={user.password}
-          required
-        />
-        <button 
-          class="w-7 -ml-14"
-          type="button"
-          onclick={() => showPassword = !showPassword}>
-          {showPassword ? "Hide" : "Show"}
-        </button>
-      </label>
-  
-      <input type="submit" value="Login" class="btn btn-neutral" />
-      {#if errorMessage}
-        <p class="text-red-500">{errorMessage}</p>
-      {/if}
-    </form>
-  </main>
+
+<main class="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+  <h1 class="text-4xl font-bold mb-8 mt-4">Welcome to CiviliTalk</h1>
+  <div class="flex w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden">
+    <!-- Left Side: Civili.gif -->
+    <div class="w-1/2 bg-gray-100 flex items-center justify-center">
+      <img src="Civili.gif" alt="CiviliTalk Logo" class="h-80 w-80 object-contain" style="animation: none;" />
+    </div>
+
+    <!-- Right Side: Login Form -->
+    <div class="w-1/2 p-8 flex flex-col justify-center">
+      <form class="flex flex-col gap-4" onsubmit={handleLogin}>
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-gray-600">Username</span>
+          <input
+            type="text"
+            class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Enter your username"
+            bind:value={user.username}
+            required
+          />
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-gray-600">Password</span>
+          <div class="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              class="p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Enter your password"
+              bind:value={user.password}
+              required
+            />
+            <button 
+              class="absolute inset-y-0 right-3 text-sm text-blue-600 hover:underline"
+              type="button"
+              onclick={() => showPassword = !showPassword}>
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+        </label>
+
+        <input type="submit" value="Login" class="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-200" />
+        {#if errorMessage}
+          <p class="text-red-500 text-center mt-2">{errorMessage}</p>
+        {/if}
+      </form>
+    </div>
+  </div>
+</main>
+
+<style>
+  main {
+    font-family: Arial, sans-serif;
+  }
+
+  @keyframes gif-animation {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.1);
+    }
+  }
+
+  img[src$="Civili.gif"] {
+    animation: gif-animation 1s infinite alternate;
+  }
+</style>
